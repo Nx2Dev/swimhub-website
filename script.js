@@ -52,48 +52,122 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     });
 });
 
-// Parallax effect for hero background
-window.addEventListener('scroll', () => {
-    const scrolled = window.pageYOffset;
-    const heroBg = document.querySelector('.hero-bg');
-    if (heroBg) {
-        heroBg.style.transform = `translateY(${scrolled * 0.5}px)`;
+// Optimized parallax effect for hero section
+// Detect mobile/touch devices for performance optimization
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 768;
+
+// Cache DOM elements and layout values once
+const parallaxElements = {
+    h1: null,
+    phoneMockup: null,
+    heroText: null,
+    hero: null,
+    heroHeight: 0
+};
+
+// Initialize parallax elements after DOM is ready
+function initParallaxElements() {
+    parallaxElements.h1 = document.querySelector('.phone-container h1');
+    parallaxElements.phoneMockup = document.querySelector('.phone-mockup');
+    parallaxElements.heroText = document.querySelector('.hero-text');
+    parallaxElements.hero = document.querySelector('.hero');
+    if (parallaxElements.hero) {
+        parallaxElements.heroHeight = parallaxElements.hero.offsetHeight;
+    }
+}
+
+// Recalculate hero height on resize (debounced)
+let resizeTimeout;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        if (parallaxElements.hero) {
+            parallaxElements.heroHeight = parallaxElements.hero.offsetHeight;
+        }
+    }, 250);
+}, { passive: true });
+
+// RAF-based scroll handler for smooth animations
+let ticking = false;
+let lastScrollY = 0;
+
+function updateParallax() {
+    const { h1, phoneMockup, heroText, heroHeight } = parallaxElements;
+
+    if (!h1 || !phoneMockup || !heroText || !heroHeight) {
+        ticking = false;
+        return;
     }
 
-    // H1 swallowing effect behind phone mockup
-    const h1 = document.querySelector('.phone-container h1');
-    const phoneMockup = document.querySelector('.phone-mockup');
-    const heroText = document.querySelector('.hero-text');
+    const scrolled = lastScrollY;
 
-    if (h1 && phoneMockup && heroText) {
-        const hero = document.querySelector('.hero');
-        const heroHeight = hero.offsetHeight;
+    // Calculate scroll progress within the hero section only
+    const effectiveScroll = Math.max(0, Math.min(scrolled, heroHeight * 0.6));
+    const scrollProgress = Math.min(effectiveScroll / (heroHeight * 0.4), 1);
 
-        // Calculate scroll progress within the hero section only
-        const effectiveScroll = Math.max(0, Math.min(scrolled, heroHeight * 0.6));
-        const scrollProgress = Math.min(effectiveScroll / (heroHeight * 0.4), 1);
+    // Move the h1 down and fade it out as user scrolls
+    const translateY = scrollProgress * 250;
+    const opacity = 1 - (scrollProgress * 2.5);
+    const scale = 1 - (scrollProgress * 0.3);
 
-        // Move the h1 down and fade it out as user scrolls
-        const translateY = scrollProgress * 250; // Move down 250px
-        const opacity = 1 - (scrollProgress * 2.5); // Fade out much faster
-        const scale = 1 - (scrollProgress * 0.3); // More scale down
+    h1.style.transform = `translate3d(0, ${translateY}px, 0) scale(${scale})`;
+    h1.style.opacity = Math.max(0, opacity);
 
-        h1.style.transform = `translateY(${translateY}px) scale(${scale})`;
-        h1.style.opacity = Math.max(0, opacity);
+    // Phone mockup moves with scroll but stops early
+    const phoneTranslate = Math.min(effectiveScroll * 0.3, heroHeight * 0.15);
+    phoneMockup.style.transform = `translate3d(0, ${phoneTranslate}px, 0)`;
 
-        // Phone mockup moves with scroll but stops early
-        const phoneTranslate = Math.min(effectiveScroll * 0.3, heroHeight * 0.15);
-        phoneMockup.style.transform = `translateY(${phoneTranslate}px)`;
+    // Hero text emerging upward to stay below the phone
+    const textProgress = Math.min(effectiveScroll / (heroHeight * 0.5), 1);
+    const textTranslate = Math.min(effectiveScroll * 0.25, heroHeight * 0.15);
+    const textOpacity = Math.min(1, textProgress * 2);
 
-        // Hero text emerging upward to stay below the phone
-        const textProgress = Math.min(effectiveScroll / (heroHeight * 0.5), 1);
-        const textTranslate = Math.min(effectiveScroll * 0.25, heroHeight * 0.15);
-        const textOpacity = Math.min(1, textProgress * 2); // Fade in
+    heroText.style.transform = `translate3d(0, ${textTranslate}px, 0)`;
+    heroText.style.opacity = textOpacity;
 
-        heroText.style.transform = `translateY(${textTranslate}px)`;
-        heroText.style.opacity = textOpacity;
+    ticking = false;
+}
+
+// Simplified mobile scroll handler (reduced animations)
+function updateParallaxMobile() {
+    const { h1, phoneMockup, heroText, heroHeight } = parallaxElements;
+
+    if (!h1 || !phoneMockup || !heroText || !heroHeight) {
+        ticking = false;
+        return;
     }
-});
+
+    const scrolled = lastScrollY;
+    const effectiveScroll = Math.max(0, Math.min(scrolled, heroHeight * 0.6));
+    const scrollProgress = Math.min(effectiveScroll / (heroHeight * 0.4), 1);
+
+    // Simplified: only fade h1, no movement to reduce jank
+    const opacity = 1 - (scrollProgress * 2.5);
+    h1.style.opacity = Math.max(0, opacity);
+
+    // Hero text fade in only
+    const textProgress = Math.min(effectiveScroll / (heroHeight * 0.5), 1);
+    const textOpacity = Math.min(1, textProgress * 2);
+    heroText.style.opacity = textOpacity;
+
+    ticking = false;
+}
+
+// Throttled scroll handler using requestAnimationFrame
+function onScroll() {
+    lastScrollY = window.pageYOffset || window.scrollY;
+
+    if (!ticking) {
+        window.requestAnimationFrame(isMobile ? updateParallaxMobile : updateParallax);
+        ticking = true;
+    }
+}
+
+// Initialize on DOM ready
+document.addEventListener('DOMContentLoaded', initParallaxElements);
+
+// Use passive listener for better scroll performance
+window.addEventListener('scroll', onScroll, { passive: true });
 
 // Add mouse move effect for feature cards (3D tilt)
 document.querySelectorAll('.feature-card').forEach(card => {
@@ -216,14 +290,14 @@ window.addEventListener('load', () => {
 const scrollTopBtn = document.getElementById('scrollTopBtn');
 
 if (scrollTopBtn) {
-    // Show button when page is scrolled down
+    // Show button when page is scrolled down (passive for performance)
     window.addEventListener('scroll', () => {
         if (window.scrollY > 500) {
             scrollTopBtn.classList.add('visible');
         } else {
             scrollTopBtn.classList.remove('visible');
         }
-    });
+    }, { passive: true });
 
     // Scroll to top when clicked
     scrollTopBtn.addEventListener('click', () => {

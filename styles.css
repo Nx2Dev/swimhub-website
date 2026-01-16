@@ -179,9 +179,11 @@ body>nav {
     display: flex;
     flex-direction: column;
     align-items: center;
-    transition: transform 0.1s ease-out, opacity 0.1s ease-out;
     opacity: 0.3;
-    margin-bottom: 10rem;
+    margin-bottom: 5rem;
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
 }
 
 @keyframes fadeInLeft {
@@ -210,7 +212,9 @@ body>nav {
     width: 90%;
     position: relative;
     z-index: 0;
-    transition: transform 0.1s ease-out, opacity 0.1s ease-out;
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
 }
 
 .hero-text p {
@@ -335,7 +339,9 @@ body>nav {
     transform-style: preserve-3d;
     margin: 0 auto;
     z-index: 2;
-    transition: transform 0.1s ease-out;
+    will-change: transform;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
 }
 
 .phone-mockup:hover {
@@ -1134,7 +1140,7 @@ footer::before {
 
     /* Hero Section */
     .hero {
-        padding: 6rem 1rem 4rem;
+        padding: 10rem 1rem 1rem;
         /* Reduced top padding */
         min-height: auto;
         /* Remove rigid min-height */
@@ -1145,12 +1151,18 @@ footer::before {
     .hero-content {
         width: 100%;
         max-width: 100%;
-        padding: 0 0 3rem 0;
+        padding: 0 0 1rem 0;
     }
 
     .phone-container {
         padding: 1rem 0;
         width: 100%;
+    }
+
+    /* Disable heavy glow animation on mobile */
+    .phone-container::before {
+        animation: none;
+        opacity: 0.3;
     }
 
     .phone-container h1 {
@@ -1176,6 +1188,17 @@ footer::before {
     .phone-mockup {
         max-width: 100%;
         margin-top: 30px;
+        /* Disable will-change on mobile to reduce memory usage */
+        will-change: auto;
+        /* Reset transform for mobile - no parallax movement */
+        transform: none !important;
+    }
+
+    /* Simplified animations on mobile for better performance */
+    .phone-container h1,
+    .hero-text {
+        will-change: opacity;
+        transform: none !important;
     }
 
     .cta-button {
